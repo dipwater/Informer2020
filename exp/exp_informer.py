@@ -69,6 +69,10 @@ class Exp_Informer(Exp_Basic):
             'ECL':Dataset_Custom,
             'Solar':Dataset_Custom,
             'custom':Dataset_Custom,
+            'Normal':Dataset_Custom,
+            'Jam':Dataset_Custom,
+            'Position':Dataset_Custom,
+            'Spall':Dataset_Custom,
         }
         Data = data_dict[self.args.data]
         timeenc = 0 if args.embed!='timeF' else 1
