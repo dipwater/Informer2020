@@ -80,6 +80,7 @@ data_parser = {
     'Jam':{'data':'Jam.csv','T':'Motor Y Voltage','M':[7,7,7],'S':[1,1,1],'MS':[7,7,1]},
     'Position':{'data':'Position.csv','T':'Motor Y Voltage','M':[7,7,7],'S':[1,1,1],'MS':[7,7,1]},
     'Spall':{'data':'Spall.csv','T':'Motor Y Voltage','M':[7,7,7],'S':[1,1,1],'MS':[7,7,1]},
+    'FLEA':{'data':'full.csv','T':'Motor Y Voltage','M':[7,7,7],'S':[1,1,1],'MS':[7,7,1]},
 }
 if args.data in data_parser.keys():
     data_info = data_parser[args.data]

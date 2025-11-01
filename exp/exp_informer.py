@@ -73,6 +73,7 @@ class Exp_Informer(Exp_Basic):
             'Jam':Dataset_Custom,
             'Position':Dataset_Custom,
             'Spall':Dataset_Custom,
+            'FLEA':Dataset_Custom,
         }
         Data = data_dict[self.args.data]
         timeenc = 0 if args.embed!='timeF' else 1

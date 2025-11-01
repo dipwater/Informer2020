@@ -134,9 +134,7 @@ if __name__ == "__main__":
     # full
     df = merge_csv_files(
         folder_path='../data/FLEA/',
-        output_file='../data/FLEA/full.csv',
-        include_source=True,
-        encoding='utf-8'  # 如果是中文 Windows 系统常见编码
+        output_file='../data/FLEA/full.csv'
     )
 
     # # Normal.csv
