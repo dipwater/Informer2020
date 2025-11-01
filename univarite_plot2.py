@@ -1,5 +1,3 @@
-# infer_informer_fixed.py
-
 import numpy as np
 import pandas as pd
 import torch
@@ -12,22 +10,25 @@ from datetime import datetime
 # -------------------------------
 # 1. 配置参数
 # -------------------------------
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# 共同的标识名称
+PREFIX = 'Normal'
 # 模型路径
-MODEL_PATH = './checkpoints/informer_Normal_ftS_sl500_ll50_pl50_dm512_nh8_el2_dl1_df2048_atprob_fc5_ebfixed_dtTrue_mxTrue_Exp_fixed_500_2/checkpoint.pth'  # 根据你的实际路径修改
-
+MODEL_PATH = f'./checkpoints/informer_{PREFIX}_ftS_sl500_ll50_pl50_dm512_nh8_el2_dl1_df2048_atprob_fc5_ebfixed_dtTrue_mxTrue_Exp_fixed_2/checkpoint.pth'
 # 数据路径
-DATA_PATH = './data/FLEA/Normal.csv'
+DATA_PATH = f'./data/FLEA/{PREFIX}.csv'
+# 输出图像保存路径
+OUTPUT_PLOT = f'./plots/prediction_{PREFIX}_univariate.png'
+# 图像标题
+TITLE = f'{PREFIX} Univariate Prediction Result'
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
 # 模型超参数（必须与训练时一致）
 SEQ_LEN = 500      # 输入序列长度
 LABEL_LEN = 50     # 解码器引导长度
 PRED_LEN = 50      # 预测长度
 INPUT_DIM = 1      # 单变量输入
-
-# 输出图像保存路径
-OUTPUT_PLOT = './plots/prediction_fixed_univariate.png'
 
 # 确保目录存在
 os.makedirs(os.path.dirname(OUTPUT_PLOT), exist_ok=True)
@@ -155,7 +156,7 @@ print("🔮 开始推理...")
 # X_val = torch.tensor(...).to(DEVICE)
 
 # ✅ 正确：分批推理
-BATCH_SIZE_INF = 4  # 每次只处理 4 个样本
+BATCH_SIZE_INF = 32  # 每次只处理 4 个样本
 
 preds_list = []
 trues_list = []
@@ -206,19 +207,18 @@ N_SHOW = 2000
 pred_plot = pred_original[:N_SHOW]
 true_plot = true_original[:N_SHOW]
 
-plt.figure(figsize=(16, 6))
+plt.figure(figsize=(8, 6))
 plt.plot(true_plot, label='True Value', color='#003f5c', linewidth=2)
 plt.plot(pred_plot, label='Predicted', color='#ffa600', linewidth=1.5, alpha=0.9)
 
-plt.title('Informer Univariate Prediction Result', fontsize=16, pad=20)
-plt.xlabel('Time Step (every 10ms)', fontsize=12)
+plt.title(TITLE, fontsize=16, pad=20)
+plt.xlabel('Time Step', fontsize=12)
 plt.ylabel('Motor Y Voltage (V)', fontsize=12)
 plt.legend(fontsize=12)
 plt.grid(True, linestyle='--', alpha=0.5)
 plt.tight_layout()
 
 # 保存图像
-OUTPUT_PLOT = './plots/prediction_univariate.png'
 plt.savefig(OUTPUT_PLOT, dpi=300, bbox_inches='tight')
 print(f"✅ 图像已保存至: {OUTPUT_PLOT}")
 
