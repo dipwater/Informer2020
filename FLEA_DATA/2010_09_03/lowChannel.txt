@@ -1,0 +1,1 @@
+Time,Desired Position,Actuator X Position,Actuator Y Position,Actuator Z Position,Desired Load,Measured Load,Motor X Current,Motor Y Current,Motor Z Current,Motor X Voltage,Motor Y Voltage,Motor Z Voltage,Motor X Temperature,Motor Y Temperature,Motor Z Temperature,Nut X Temperature,Nut Y Temperature,Nut Z Temperature,Ambient Temperature

@@ -99,7 +99,7 @@ def batch_convert_flea(root_dir, output_dir):
 if __name__ == "__main__":
     # 输出根目录
     OUTPUT_ROOT = "../data/FLEA2/"
-    batch_convert_flea("../FLEA_DATA", OUTPUT_ROOT)
+    batch_convert_flea("../FLEA", OUTPUT_ROOT)
     # # 定义四类状态的原始 .data 文件路径（来自你的文档）
     # file_configs = [
     #     {

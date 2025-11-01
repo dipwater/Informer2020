@@ -15,7 +15,7 @@ from datetime import datetime
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 模型路径
-MODEL_PATH = './checkpoints/Exp_fixed_500/checkpoint.pth'  # 根据你的实际路径修改
+MODEL_PATH = './checkpoints/informer_Normal_ftS_sl500_ll50_pl50_dm512_nh8_el2_dl1_df2048_atprob_fc5_ebfixed_dtTrue_mxTrue_Exp_fixed_500_2/checkpoint.pth'  # 根据你的实际路径修改
 
 # 数据路径
 DATA_PATH = './data/FLEA/Normal.csv'
@@ -27,7 +27,7 @@ PRED_LEN = 50      # 预测长度
 INPUT_DIM = 1      # 单变量输入
 
 # 输出图像保存路径
-OUTPUT_PLOT = './results/informer_prediction_fixed.png'
+OUTPUT_PLOT = './plots/prediction_fixed_univariate.png'
 
 # 确保目录存在
 os.makedirs(os.path.dirname(OUTPUT_PLOT), exist_ok=True)
@@ -151,14 +151,37 @@ model.eval()
 # -------------------------------
 print("🔮 开始推理...")
 
+# ❌ 错误：全部加载
+# X_val = torch.tensor(...).to(DEVICE)
+
+# ✅ 正确：分批推理
+BATCH_SIZE_INF = 4  # 每次只处理 4 个样本
+
+preds_list = []
+trues_list = []
+
+model.eval()
 with torch.no_grad():
-    # ✅ 关键：x_mark_enc 和 x_mark_dec 传 None
-    preds = model(
-        x_enc=X_val,           # (B, 500, 1)
-        x_mark_enc=None,       # embed='fixed' 时不需要
-        x_dec=x_dec,           # (B, 100, 1)
-        x_mark_dec=None        # 不需要
-    )  # 输出: (B, 50, 1)
+    for i in range(0, len(X_val), BATCH_SIZE_INF):
+        x_enc_batch = X_val[i:i+BATCH_SIZE_INF].to(DEVICE)
+        y_true_batch = Y_true[i:i+BATCH_SIZE_INF]
+
+        # 构造 x_dec 和 x_mark（每批都构造）
+        B = x_enc_batch.shape[0]
+        dec_inp = torch.zeros(B, PRED_LEN, INPUT_DIM).to(DEVICE)
+        x_dec = torch.cat([x_enc_batch[:, -LABEL_LEN:, :], dec_inp], dim=1)
+
+        x_mark_enc = torch.zeros(B, SEQ_LEN, 5, dtype=torch.long).to(DEVICE)
+        x_mark_dec = torch.zeros(B, LABEL_LEN + PRED_LEN, 5, dtype=torch.long).to(DEVICE)
+
+        pred = model(x_enc_batch, x_mark_enc, x_dec, x_mark_dec)  # (B, 50, 1)
+
+        preds_list.append(pred.cpu())
+        trues_list.append(y_true_batch.cpu())
+
+# 拼接结果
+preds = torch.cat(preds_list, dim=0)
+trues = torch.cat(trues_list, dim=0)
 
 # 移到 CPU 并转为 numpy
 preds = preds.cpu().numpy().reshape(-1)        # (B * 50,)
@@ -175,15 +198,19 @@ print(f"预测数据长度: {len(pred_original)}")
 print(f"真实数据长度: {len(true_original)}")
 
 # -------------------------------
-# 7. 可视化结果
+# 7. 可视化结果（仅显示前 2000 点）
 # -------------------------------
-print("📊 绘制结果...")
+print("📊 绘制结果（仅前 2000 个点）...")
+
+N_SHOW = 2000
+pred_plot = pred_original[:N_SHOW]
+true_plot = true_original[:N_SHOW]
 
 plt.figure(figsize=(16, 6))
-plt.plot(true_original, label='True Value', color='#003f5c', linewidth=2)
-plt.plot(pred_original, label='Predicted', color='#ffa600', linewidth=1.5, alpha=0.9)
+plt.plot(true_plot, label='True Value', color='#003f5c', linewidth=2)
+plt.plot(pred_plot, label='Predicted', color='#ffa600', linewidth=1.5, alpha=0.9)
 
-plt.title('Informer Prediction Result (embed=fixed, 10ms Data)', fontsize=16, pad=20)
+plt.title('Informer Univariate Prediction Result', fontsize=16, pad=20)
 plt.xlabel('Time Step (every 10ms)', fontsize=12)
 plt.ylabel('Motor Y Voltage (V)', fontsize=12)
 plt.legend(fontsize=12)
@@ -191,17 +218,18 @@ plt.grid(True, linestyle='--', alpha=0.5)
 plt.tight_layout()
 
 # 保存图像
+OUTPUT_PLOT = './plots/prediction_univariate.png'
 plt.savefig(OUTPUT_PLOT, dpi=300, bbox_inches='tight')
 print(f"✅ 图像已保存至: {OUTPUT_PLOT}")
 
 plt.show()
 
 # -------------------------------
-# 8. 可选：保存预测结果到 CSV
+# 8. 保存预测结果到 CSV（仅前 2000 行）
 # -------------------------------
 result_df = pd.DataFrame({
-    'True': true_original,
-    'Predicted': pred_original
+    'True': true_plot,
+    'Predicted': pred_plot
 })
 result_csv = OUTPUT_PLOT.replace('.png', '.csv')
 result_df.to_csv(result_csv, index=False)

@@ -1,6 +1,8 @@
 #python -u main_informer.py --model informer --data WTH --features M --attn prob --d_layers 2 --e_layers 3 --itr 3 --label_len 168 --pred_len 24 --seq_len 168 --des 'Exp'
 # 训练 Normal 模型
-python -u main_informer.py --model informer --data Normal --root_path ./data/FLEA/ --features S --embed fixed --freq t --seq_len 500 --label_len 50 --pred_len 50 --batch_size 64 --train_epochs 20 --des 'Exp_fixed_500' --itr 3
+python -u main_informer.py --model informer --data Normal --root_path ./data/FLEA/ --features S --embed fixed --freq t --seq_len 500 --label_len 50 --pred_len 50 --train_epochs 20 --des 'Exp_fixed' --itr 3
+
+python -u main_informer.py --model informer --data Normal --root_path ./data/FLEA/ --features MS --embed fixed --freq t --seq_len 500 --label_len 50 --pred_len 50 --train_epochs 20 --des 'Exp_fixed' --itr 3
 
 # 训练 Jam 模型（仅改 data_path 和 checkpoints）
 python -u main_informer.py \
