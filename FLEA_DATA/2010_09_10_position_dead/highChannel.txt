@@ -1,1 +1,0 @@
-Time,Nut X Accelerometer Axis X,Nut X Accelerometer Axis Y,Nut X Accelerometer Axis Z,Nut Y Accelerometer Axis X,Nut Y Accelerometer Axis Y,Nut Y Accelerometer Axis Z
