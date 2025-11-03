@@ -1,0 +1,58 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 手动指定中文字体（seaborn 的 annot 和 tick labels 需要单独处理）
+plt.rcParams['font.sans-serif'] = ['STHeiti', 'Arial Unicode MS', 'sans-serif']
+plt.rcParams['axes.unicode_minus'] = False  # 正确显示负号（如 -1）
+
+# 原始混淆矩阵
+confusion_matrix_full = np.array([
+    [94.70, 1.40, 2.10, 0.80, 1.00],   # 正常
+    [1.30, 95.20, 2.00, 0.60, 0.90],   # 阻塞故障
+    [1.20, 2.10, 94.50, 1.00, 1.20],   # 破损故障（可后续移除）
+    [0.40, 0.60, 0.70, 96.30, 2.00],   # 传感器故障（识别最稳定）
+    [1.10, 1.30, 2.20, 1.50, 93.90]    # 丝杠剥落故障
+])
+
+# 去掉“破损故障”（索引2）
+indices_to_keep = [0, 1, 3, 4]
+confusion_matrix = confusion_matrix_full[np.ix_(indices_to_keep, indices_to_keep)] / 100.0
+
+# 更新标签
+labels = ['正常', '阻塞故障', '传感器故障', '丝杠剥落']
+
+# 创建图形
+plt.figure(figsize=(5, 4))
+
+# 绘制热力图
+ax = sns.heatmap(
+    confusion_matrix,
+    annot=True,
+    fmt='.2%',
+    cmap='YlOrRd',
+    cbar=True,
+    square=True,
+    linewidths=0.8,
+    linecolor='black',
+    annot_kws={'size': 14, 'fontname': 'Times New Roman'}  # 注释数字用 Times New Roman
+)
+
+# 设置坐标轴标签
+plt.xlabel('预测标签', fontsize=14)
+plt.ylabel('真实标签', fontsize=14)
+
+# 设置 x 轴标签倾斜
+plt.xticks(np.arange(len(labels)), labels, rotation=0)
+plt.yticks(np.arange(len(labels)), labels, rotation=0)
+
+# 颜色条标签字体设为 Times New Roman
+cbar = ax.collections[0].colorbar
+cbar.ax.tick_params(labelsize=14, labelcolor='black', labelfontfamily='Times New Roman')
+
+# 调整布局
+plt.tight_layout()
+plt.savefig('plots/matrix_4_BiGRU_Attention.png', dpi=300)
+
+# 显示或保存
+plt.show()
