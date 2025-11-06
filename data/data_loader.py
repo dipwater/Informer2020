@@ -377,3 +377,103 @@ class Dataset_Pred(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+
+
+class Dataset_FLEA(Dataset):
+    def __init__(self, root_path, flag='train', size=None,
+                 data_path='flea.csv',
+                 target='Motor Y Voltage',  # ←←← 关键：预测电压
+                 scale=True, timeenc=0):
+        if size is None:
+            self.seq_len = 120  # 60 seconds
+            self.label_len = 30  # 15 seconds
+            self.pred_len = 20  # 10 seconds ← 可根据需求调整为 60（30秒）等
+        else:
+            self.seq_len = size[0]
+            self.label_len = size[1]
+            self.pred_len = size[2]
+
+        assert flag in ['train', 'val', 'test']
+        self.flag = flag
+        self.target = target
+        self.scale = scale
+        self.timeenc = timeenc
+
+        self.root_path = root_path
+        self.data_path = data_path
+        self.__read_data__()
+
+    def __read_data__(self):
+        df_raw = pd.read_csv(os.path.join(self.root_path, self.data_path))
+        df_raw['date'] = pd.to_datetime(df_raw['date'])
+        df_raw = df_raw.sort_values('date').reset_index(drop=True)
+
+        feature_columns = [
+            'Actuator Z Position',
+            'Motor Z Current',
+            'Motor Y Temperature',
+            'Motor Z Temperature',
+            'Nut Y Temperature',
+            'Ambient Temperature',
+            'Motor Y Voltage'
+        ]
+        assert self.target in feature_columns, f"Target {self.target} not in columns!"
+        df_raw = df_raw[['date'] + feature_columns]
+
+        # 划分边界（全局索引）
+        num_train = int(len(df_raw) * 0.7)
+        num_vali = int(len(df_raw) * 0.1)
+        num_test = len(df_raw) - num_train - num_vali
+
+        border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]
+        border2s = [num_train, num_train + num_vali, len(df_raw)]
+        border1 = border1s[['train', 'val', 'test'].index(self.flag)]
+        border2 = border2s[['train', 'val', 'test'].index(self.flag)]
+
+        # 标准化（仅用训练集 fit）
+        if self.scale:
+            self.scaler = StandardScaler()
+            train_data = df_raw[feature_columns].iloc[border1s[0]:border2s[0]]
+            self.scaler.fit(train_data.values)
+            data = self.scaler.transform(df_raw[feature_columns].values)
+        else:
+            data = df_raw[feature_columns].values
+
+        # ✅ 关键修改：将 data 和 df_stamp 都裁剪到当前 flag 的范围！
+        self.data_x = data[border1:border2]  # [T_sub, 7]
+        self.target_idx = feature_columns.index(self.target)
+        self.data_y = self.data_x[:, self.target_idx]  # [T_sub,]
+
+        # 时间特征也只取当前子集
+        df_stamp = df_raw[['date']].iloc[border1:border2]
+        df_stamp['date'] = pd.to_datetime(df_stamp['date'])
+        df_stamp['hour'] = df_stamp.date.dt.hour
+        df_stamp['dayofweek'] = df_stamp.date.dt.dayofweek
+        df_stamp['day'] = df_stamp.date.dt.day
+        df_stamp['month'] = df_stamp.date.dt.month
+        self.data_stamp = df_stamp.drop(['date'], axis=1).values  # [T_sub, 4]
+
+    def __getitem__(self, index):
+        s_begin = index
+        s_end = s_begin + self.seq_len
+        r_begin = s_end - self.label_len
+        r_end = r_begin + self.label_len + self.pred_len
+
+        seq_x = self.data_x[s_begin:s_end]  # [seq_len, 7]
+        seq_y = self.data_y[r_begin:r_end, None]  # [label_len+pred_len, 1]
+        seq_x_mark = self.data_stamp[s_begin:s_end]  # [seq_len, 4]
+        seq_y_mark = self.data_stamp[r_begin:r_end]  # [label_len+pred_len, 4]
+
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
+
+    def __len__(self):
+        return len(self.data_x) - self.seq_len - self.pred_len + 1
+
+    def inverse_transform(self, data):
+        """将预测的 'Motor Y Voltage' 从标准化值还原为原始值"""
+        # data: [N, pred_len] or [N, pred_len, 1]
+        data = data.reshape(-1, 1)
+        tmp = np.zeros((data.shape[0], self.data_x.shape[1]))  # [N, 7]
+        tmp[:, self.target_idx] = data[:, 0]
+        inversed = self.scaler.inverse_transform(tmp)[:, self.target_idx]
+        return inversed
